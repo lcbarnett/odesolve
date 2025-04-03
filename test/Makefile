@@ -59,7 +59,7 @@ else
 	WHICH = which
 endif
 
-WFLAGS = -Wall -Wextra -Wconversion -pedantic-errors
+WFLAGS = -Wall -Wextra -Wconversion -Wpedantic -Werror
 DFLAGS = -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
 IFLAGS = -I..
 

@@ -1,7 +1,34 @@
+// Generic ODE solver macro, with Euler, Heun and Runge-Kutta 4 ("RK4") integration.
+//
+// See test/test.c and test/Makefile for example usage, and for building programs using ode.h
+
+#include <string.h>
 
 typedef enum {EULER = 0, HEUN, RKFOUR, UNKNOWN} ode_t;
 
-// ODE solver macros; __VA_ARGS__ are the parameters to the ODE fun
+static inline ode_t str2ode(const char* const str)
+{
+	return strcasecmp(str,"Euler") == 0 ? EULER : strcasecmp(str,"Heun" ) == 0 ? HEUN : strcasecmp(str,"RK4"  ) == 0 ? RKFOUR : UNKNOWN;
+}
+
+// the ODE Macro parameters:
+//
+// Name     Description              Type
+// ----------------------------------------------------------------------------------------------------------------
+// ode      ODE type                 ode_t
+// odefun   ODE function pointer     void (*odefun)(double* const xdot, const double* const x, const size_t N, ...)
+// x        ODE variables            double* const
+// N        Sytem dimension          const size_t
+// n        Number of time steps     const size_t
+// h        Integration step size    const double
+// ...      'odefun' parameters      as specified in the 'odefun' prototype
+// ----------------------------------------------------------------------------------------------------------------
+//
+// Memory for the ODE variables should be allocated with
+//
+//   	double* const x = calloc(N*n,sizeof(double));
+//
+// then initialised appropriately, and deallocated after use with free(x).
 
 #define ODE(ode,odefun,x,N,n,h,...) \
 { \

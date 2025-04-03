@@ -1,14 +1,17 @@
+// odesolve test and demonstration program.
+//
+// Use Makefile in this directory to build.
+//
+// Results are plotted to file; if Gnuplot is available on your system, results are plotted;
+
+// The "Lorenz 96" chaotic system (https://en.wikipedia.org/wiki/Lorenz_96_model)
+
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "ode.h"
 
-#define UNUSED __attribute__ ((unused))
-
-// The "Lorenz 96" chaotic system
-
-inline void lorenz96(double* const xdot, const double* const x, const size_t N, const double F)
+static inline void lorenz96(double* const xdot, const double* const x, const size_t N, const double F)
 {
 	xdot[0] = (x[1]-x[N-2])*x[N-1]-x[0]+F;
 	xdot[1] = (x[2]-x[N-1])*x[0]-x[1]+F;
@@ -22,41 +25,37 @@ int main(int argc, char* argv[])
 {
 	// Default command-line parameters
 
-	const double      F     = argc > 1 ?         atof(argv[1])   : 8.0;
-	const size_t      N     = argc > 2 ? (size_t)atol(argv[2])   : 5;
-	const double      dt    = argc > 3 ?         atof(argv[3])   : 0.01;
-	const size_t      n     = argc > 4 ? (size_t)atol(argv[4])   : 10000;
-	const char* const sstr  = argc > 5 ?              argv[5]    : "Heun";
-	const char* const ofile = argc > 6 ?              argv[6]    : "/tmp/test.asc";
+	const double      F   = argc > 1 ?         atof(argv[1])   : 8.0;    // Lorenz 96 F parameter
+	const size_t      N   = argc > 2 ? (size_t)atol(argv[2])   : 5;      // system dimension (number of variables)
+	const double      dt  = argc > 3 ?         atof(argv[3])   : 0.01;   // integration time step
+	const size_t      n   = argc > 4 ? (size_t)atol(argv[4])   : 10000;  // number of integration time steps
+	const char* const ode = argc > 5 ?              argv[5]    : "Heun"; // "Euler", "Heun", or "RK4"
+	const char* const of  = argc > 6 ?              argv[6]    : "/tmp/test.asc";
 #ifdef HAVE_GNUPLOT
-	const char* const gfile = argc > 6 ?              argv[6]    : "/tmp/test.gp";
+	const char* const gf  = argc > 7 ?              argv[7]    : "/tmp/test.gpfs";
 #endif //HAVE_GNUPLOT
 
-	if (N < 3)  {
-		fprintf(stderr,"ERROR: Need at least three variables\n");
+	// Display command-line  parameters
+
+	printf("\n*** ODESOLVE test (Lorenz 96 system) ***\n\n");
+	printf("system dimension            =  %zu\n",   N);
+	printf("Lorenz 96 F parameter       =  %g\n",    F);
+	printf("integration step size       =  %g\n",    dt);
+	printf("number of integration steps =  %zu\n",   n);
+	printf("ODE solver                  =  %s\n\n",  ode);
+
+	// Check command-line parameters
+
+	if (N < 4)  {
+		fprintf(stderr,"ERROR: Lorenz 96 needs at least four variables\n");
 		return EXIT_FAILURE;
 	}
 
-	// Check the solver
-
-	const ode_t solver =
-		strcasecmp(sstr,"Euler") == 0 ? EULER  :
-		strcasecmp(sstr,"Heun" ) == 0 ? HEUN   :
-		strcasecmp(sstr,"RK4"  ) == 0 ? RKFOUR : UNKNOWN;
-
+	const ode_t solver = str2ode(ode);
 	if (solver == UNKNOWN) {
 		fprintf(stderr,"ERROR: Unknown ODE solver\n");
 		return EXIT_FAILURE;
 	}
-
-	// Display parameters
-
-	printf("\n*** ODESOLVE test (Lorenz 96 system) ***\n\n");
-	printf("Lorenz 96 dimension         =  %zu\n",   N);
-	printf("Lorenz 96 F parameter       =  %g\n",    F);
-	printf("integration step size       =  %g\n",    dt);
-	printf("number of integration steps =  %zu\n",   n);
-	printf("ODE solver                  =  %s\n\n",  sstr);
 
 	// Allocate memory for variables
 
@@ -72,17 +71,17 @@ int main(int argc, char* argv[])
 
 	// Write results to file
 
-	FILE* const fp = fopen(ofile,"w");
-	if (fp == NULL) {
+	FILE* const offs = fopen(of,"w");
+	if (offs == NULL) {
 		perror("ERROR: Failed to open output file");
 		return EXIT_FAILURE;
 	}
 	for (size_t k=0; k<n; ++k) {
 		const double* const xk = x + N*k;
-		for (size_t i=0; i<N; ++i) fprintf(fp,"%17.8f",xk[i]);
-		fputc('\n',fp);
+		for (size_t i=0; i<N; ++i) fprintf(offs," %16.8f",xk[i]);
+		fputc('\n',offs);
 	}
-	if (fclose(fp) != 0) {
+	if (fclose(offs) != 0) {
 		perror("ERROR: Failed to close output file");
 		return EXIT_FAILURE;
 	}
@@ -92,25 +91,25 @@ int main(int argc, char* argv[])
 	// if Gnuplot available, plot trajectory of first three variables in 3D
 
 #ifdef HAVE_GNUPLOT
-	FILE* const gp = fopen(gfile,"w");
-	if (gp == NULL) {
+	FILE* const gpfs = fopen(gf,"w");
+	if (gpfs == NULL) {
 		perror("ERROR: failed to open Gnuplot command file\n");
 		return EXIT_FAILURE;
 	}
-	fprintf(gp,"unset key\n");
-	fprintf(gp,"set grid\n");
-	fprintf(gp,"set title \"Lorenz 96 system (%s solver)\"\n",sstr);
-	fprintf(gp,"set xlabel \"x\"\n");
-	fprintf(gp,"set ylabel \"y\"\n");
-	fprintf(gp,"set zlabel \"z\"\n");
-	fprintf(gp,"splot \"%s\" u 1:2:3 w l not\n",ofile);
-	if (fclose(gp) != 0) {
+	fprintf(gpfs,"unset key\n");
+	fprintf(gpfs,"set grid\n");
+	fprintf(gpfs,"set title \"Lorenz 96 system (%s solver)\"\n",ode);
+	fprintf(gpfs,"set xlabel \"x\"\n");
+	fprintf(gpfs,"set ylabel \"y\"\n");
+	fprintf(gpfs,"set zlabel \"z\"\n");
+	fprintf(gpfs,"splot \"%s\" u 1:2:3 w l not\n",of);
+	if (fclose(gpfs) != 0) {
 		perror("Failed to close Gnuplot command file");
 		return EXIT_FAILURE;
 	}
 	const size_t strlen = 100;
 	char gpcmd[strlen+1];
-	snprintf(gpcmd,strlen,"gnuplot -p %s",gfile);
+	snprintf(gpcmd,strlen,"gnuplot -p %s",gf);
 	printf("\nGnuplot command: %s\n\n",gpcmd);
 	if (system(gpcmd) == -1) {
 		perror("ERROR: Failed to run Gnuplot command");
