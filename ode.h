@@ -1,22 +1,13 @@
-#ifndef ODE_H
-#define ODE_H
 
-typedef enum {EULER = 0, HEUN, RKFOUR} ode_t;
+typedef enum {EULER = 0, HEUN, RKFOUR, UNKNOWN} ode_t;
 
 // ODE solver macros; __VA_ARGS__ are the parameters to the ODE fun
-
-static inline const char* ode2str(const ode_t ode)
-{
-	static char* odes[] = {"Euler", "Heun", "RK4"};
-	if (ode < 0 || ode > RKFOUR) return NULL;
-	return odes[ode];
-}
 
 #define ODE(ode,odefun,x,N,n,h,...) \
 { \
 	switch (ode) { \
 		case EULER: { \
-			printf("EULER : "#odefun); \
+			printf("EULER : "#odefun"\n"); \
 			double udot[N]; \
 			for (double* u=x; u<x+N*(n-1); u+=N) { \
 				odefun(udot,u,N,__VA_ARGS__); \
@@ -25,7 +16,7 @@ static inline const char* ode2str(const ode_t ode)
 			}} \
 			break; \
 		case HEUN: { \
-			printf("HEUN : "#odefun); \
+			printf("HEUN : "#odefun"\n"); \
 			const double h2 = h/2.0; \
 			double udot1[N], udot2[N]; \
 			double v[N]; \
@@ -38,7 +29,7 @@ static inline const char* ode2str(const ode_t ode)
 			}} \
 			break; \
 		case RKFOUR: { \
-			printf("RK4 : "#odefun); \
+			printf("RK4 : "#odefun"\n"); \
 			const double h2 = h/2.0; \
 			const double h6 = h/6.0; \
 			double udot1[N],udot2[N],udot3[N],udot4[N]; \
@@ -55,7 +46,7 @@ static inline const char* ode2str(const ode_t ode)
 				for (size_t i=0; i<N; ++i) u1[i]  += u[i] + h6*(udot1[i]+2.0*udot2[i]+2.0*udot3[i]+udot4[i]); \
 			}} \
 			break; \
+		default: \
+			break; \
 	} \
 }
-
-#endif // ODE_H
