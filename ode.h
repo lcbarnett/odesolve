@@ -84,7 +84,7 @@ static inline ode_t str2ode(const char* const str)
 //
 // Name     Description              Type
 // ----------------------------------------------------------------------------------------------------------------
-// odefun   ODE function pointer     void (*odefun)(double* const xdot, const double* const x, ...)
+// odefun   ODE function pointer     double (*odefun)(const double x, ...)
 // ----------------------------------------------------------------------------------------------------------------
 
 #define ODE1(ode,odefun,x,n,h,...) \
@@ -94,7 +94,7 @@ static inline ode_t str2ode(const char* const str)
 			printf("EULER : "#odefun"\n"); \
 			double udot; \
 			for (double* u=x; u<x+n-1; ++u) { \
-				odefun(udot,u,__VA_ARGS__); \
+				udot = odefun(*u,__VA_ARGS__); \
 				*(u+1) += *u + h*udot; \
 			}} \
 			break; \
@@ -104,9 +104,9 @@ static inline ode_t str2ode(const char* const str)
 			double udot1, udot2; \
 			double v; \
 			for (double* u=x; u<x+n-1; ++u) { \
-				odefun(udot1,u,__VA_ARGS__); \
+				udot1 = odefun(*u,__VA_ARGS__); \
 				v = *u + h*udot1; \
-				odefun(udot2,v,__VA_ARGS__); \
+				udot2 = odefun(v,__VA_ARGS__); \
 				*(u+1) += *u + h2*(udot1+udot2); \
 			}} \
 			break; \
@@ -117,14 +117,14 @@ static inline ode_t str2ode(const char* const str)
 			double udot1,udot2,udot3,udot4; \
 			double v; \
 			for (double* u=x; u<x+n-1; ++u) { \
-				odefun(udot1,u,__VA_ARGS__); \
+				udot1 = odefun(*u,__VA_ARGS__); \
 				v = *u + h2*udot1; \
-				odefun(udot2,v,__VA_ARGS__); \
+				udot2 = odefun(v,__VA_ARGS__); \
 				v = *u + h2*udot2; \
-				odefun(udot3,v,__VA_ARGS__); \
+				udot3 = odefun(v,__VA_ARGS__); \
 				v = *u + h*udot3; \
-				odefun(udot4,v,__VA_ARGS__); \
-				*(u+1) += u + h6*(udot1+2.0*udot2+2.0*udot3+udot4); \
+				udot4 = odefun(v,__VA_ARGS__); \
+				*(u+1) += *u + h6*(udot1+2.0*udot2+2.0*udot3+udot4); \
 			}} \
 			break; \
 		default: \

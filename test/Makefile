@@ -40,24 +40,25 @@ BINDIR = bin
 
 # "library" source
 
-SRC = test.c
+SRC = mt64.c test.c
 OBJ = $(patsubst %.c, .%.$(OBJEXT), $(SRC))
+DEP = $(patsubst %.o,%.d,$(OBJ))
 BIN = test$(BINEXT)
 
 ifeq ($(OS),WIN)
 	OFLAGS = -O3
 	DFLAGS := $(DFLAGS) -DWIN
 	RM = del /F /Q
-	RBIN = $(subst /,\,$(BIN))
 	LDFLAGS = $(OFLAGS)
 	WHICH = where
 else
 	OFLAGS = -O3 -flto
 	RM = rm -f
-	RBIN = $(BIN)
 	LDFLAGS = $(OFLAGS) -lm
 	WHICH = which
 endif
+
+REPDEP = sed -i -e '1s,\($*\)\.o[ :]*,\1.o \.$*.d: ,' \.$*.d
 
 WFLAGS = -Wall -Wextra -Wconversion -Wpedantic -Werror
 DFLAGS = -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
@@ -67,19 +68,26 @@ ifneq (,$(shell $(WHICH) gnuplot))
 	DFLAGS += -DHAVE_GNUPLOT
 endif
 
-GCCFLAGS = $(OFLAGS) $(WFLAGS) $(DFLAGS)
+CFLAGS = $(OFLAGS) $(WFLAGS) $(DFLAGS)
 
-.PHONY: all clean
+.PHONY: all clean diag
 
 all: $(BIN)
 
 clean:
-	$(RM) $(OBJ) $(RBIN)
+	$(RM) $(OBJ) $(DEP) $(BIN)
 
 $(OBJ): .%.o: %.c
-	$(CC) -c $(GCCFLAGS) $(IFLAGS) $< -o $@
+	$(CC) -c -MMD -MP $(CFLAGS) $(IFLAGS) $< -o $@
+	@$(REPDEP)
 
 $(BIN): $(OBJ)
-	$(CC) $(LDFLAGS) $< -o $@
+	$(CC) $(OBJ) $(LDFLAGS) -o $(BIN)
 
-.test.o: test.c ../ode.h
+-include $(DEP)
+
+diag:
+	@echo "*** SRC = " $(SRC)
+	@echo "*** OBJ = " $(OBJ)
+	@echo "*** DEP = " $(DEP)
+	@echo "*** BIN = " $(BIN)
