@@ -63,14 +63,68 @@ static inline ode_t str2ode(const char* const str)
 			double v[N]; \
 			for (double* u=x; u<x+N*(n-1); u+=N) { \
 				odefun(udot1,u,N,__VA_ARGS__); \
-				for (size_t i=0; i<N; ++i) v[i] = u[i]+h2*udot1[i]; \
+				for (size_t i=0; i<N; ++i) v[i] = u[i] + h2*udot1[i]; \
 				odefun(udot2,v,N,__VA_ARGS__); \
-				for (size_t i=0; i<N; ++i) v[i] = u[i]+h2*udot2[i]; \
+				for (size_t i=0; i<N; ++i) v[i] = u[i] + h2*udot2[i]; \
 				odefun(udot3,v,N,__VA_ARGS__); \
-				for (size_t i=0; i<N; ++i) v[i] = u[i]+h*udot3[i]; \
+				for (size_t i=0; i<N; ++i) v[i] = u[i] + h*udot3[i]; \
 				odefun(udot4,v,N,__VA_ARGS__); \
 				double* const u1 = u+N; \
 				for (size_t i=0; i<N; ++i) u1[i]  += u[i] + h6*(udot1[i]+2.0*udot2[i]+2.0*udot3[i]+udot4[i]); \
+			}} \
+			break; \
+		default: \
+			break; \
+	} \
+}
+
+// More efficient for 1-dimesnional ODEs (N = 1)
+
+// the ODE1 Macro parameters; same, except no N parameter, and
+//
+// Name     Description              Type
+// ----------------------------------------------------------------------------------------------------------------
+// odefun   ODE function pointer     void (*odefun)(double* const xdot, const double* const x, ...)
+// ----------------------------------------------------------------------------------------------------------------
+
+#define ODE1(ode,odefun,x,n,h,...) \
+{ \
+	switch (ode) { \
+		case EULER: { \
+			printf("EULER : "#odefun"\n"); \
+			double udot; \
+			for (double* u=x; u<x+n-1; ++u) { \
+				odefun(udot,u,__VA_ARGS__); \
+				*(u+1) += *u + h*udot; \
+			}} \
+			break; \
+		case HEUN: { \
+			printf("HEUN : "#odefun"\n"); \
+			const double h2 = h/2.0; \
+			double udot1, udot2; \
+			double v; \
+			for (double* u=x; u<x+n-1; ++u) { \
+				odefun(udot1,u,__VA_ARGS__); \
+				v = *u + h*udot1; \
+				odefun(udot2,v,__VA_ARGS__); \
+				*(u+1) += *u + h2*(udot1+udot2); \
+			}} \
+			break; \
+		case RKFOUR: { \
+			printf("RK4 : "#odefun"\n"); \
+			const double h2 = h/2.0; \
+			const double h6 = h/6.0; \
+			double udot1,udot2,udot3,udot4; \
+			double v; \
+			for (double* u=x; u<x+n-1; ++u) { \
+				odefun(udot1,u,__VA_ARGS__); \
+				v = *u + h2*udot1; \
+				odefun(udot2,v,__VA_ARGS__); \
+				v = *u + h2*udot2; \
+				odefun(udot3,v,__VA_ARGS__); \
+				v = *u + h*udot3; \
+				odefun(udot4,v,__VA_ARGS__); \
+				*(u+1) += u + h6*(udot1+2.0*udot2+2.0*udot3+udot4); \
 			}} \
 			break; \
 		default: \
