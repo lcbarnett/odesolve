@@ -153,7 +153,7 @@ int outest(int argc, char* argv[])
 	printf("OU noise intensity          = %g\n",    sig );
 	printf("integration step size       = %g\n",    dt  );
 	printf("number of integration steps = %zu\n",   n   );
-	printf("random seed                 = %zu%seed\n",seed,seed?"":" (random random seed :-)");
+	printf("random seed                 = %zu%s\n",seed,seed?"":" (random random seed :-)");
 	printf("ODE solver                  = %s\n\n",  ode );
 
 	// Check command-line parameters
