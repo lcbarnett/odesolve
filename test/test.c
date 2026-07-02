@@ -69,7 +69,7 @@ int lorenz96test(int argc, char* argv[])
 
 	// Solve the ODE
 
-	ODE(solver,lorenz96,x,N,n,dt,F);
+	ODE(solver,lorenz96,x,N,n,dt,N,F);
 
 	// Write results to file
 
